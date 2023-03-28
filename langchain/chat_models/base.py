@@ -51,10 +51,15 @@ class BaseChatModel(BaseLanguageModel, ABC):
         self, messages: List[List[BaseMessage]], stop: Optional[List[str]] = None
     ) -> LLMResult:
         """Top Level call"""
+        self.callback_manager.on_llm_start(
+            {"name": self.__class__.__name__}, messages, verbose=self.verbose
+        )
         results = [self._generate(m, stop=stop) for m in messages]
         llm_output = self._combine_llm_outputs([res.llm_output for res in results])
         generations = [res.generations for res in results]
-        return LLMResult(generations=generations, llm_output=llm_output)
+        llm_result = LLMResult(generations=generations, llm_output=llm_output)
+        self.callback_manager.on_llm_end(llm_result)
+        return llm_result
 
     async def agenerate(
         self, messages: List[List[BaseMessage]], stop: Optional[List[str]] = None
@@ -125,7 +130,9 @@ class BaseChatModel(BaseLanguageModel, ABC):
     def __call__(
         self, messages: List[BaseMessage], stop: Optional[List[str]] = None
     ) -> BaseMessage:
-        return self._generate(messages, stop=stop).generations[0].message
+        llm_result = self.generate([messages], stop=stop)
+        message = llm_result.generations[0][0].message
+        return message
 
     def call_as_llm(self, message: str, stop: Optional[List[str]] = None) -> str:
         result = self([HumanMessage(content=message)], stop=stop)
