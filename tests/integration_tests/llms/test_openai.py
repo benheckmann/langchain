@@ -5,6 +5,7 @@ from typing import Generator
 
 import pytest
 
+from langchain.callbacks import OpenAICallbackHandler
 from langchain.callbacks.base import CallbackManager
 from langchain.llms.loading import load_llm
 from langchain.llms.openai import OpenAI, OpenAIChat
@@ -212,7 +213,6 @@ async def test_openai_chat_async_streaming_callback() -> None:
     assert callback_handler.llm_streams != 0
     assert isinstance(result, LLMResult)
 
-
 def test_openai_modelname_to_contextsize_valid() -> None:
     """Test model name to context size on a valid model."""
     assert OpenAI().modelname_to_contextsize("davinci") == 2049
@@ -222,3 +222,18 @@ def test_openai_modelname_to_contextsize_invalid() -> None:
     """Test model name to context size on an invalid model."""
     with pytest.raises(ValueError):
         OpenAI().modelname_to_contextsize("foobar")
+
+
+def test_openai_chat_non_streaming_callback() -> None:
+    callback_handler = OpenAICallbackHandler()
+    callback_manager = CallbackManager([callback_handler])
+    llm = OpenAI(
+        max_tokens=10,
+        temperature=0,
+        callback_manager=callback_manager,
+        verbose=True,
+    )
+    llm("Write me a sentence with 100 words.")
+    assert callback_handler.prompt_tokens > 0
+    assert callback_handler.completion_tokens == 10
+    assert callback_handler.total_tokens > 10

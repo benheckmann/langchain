@@ -3,6 +3,7 @@
 
 import pytest
 
+from langchain.callbacks import OpenAICallbackHandler
 from langchain.callbacks.base import CallbackManager
 from langchain.chat_models.openai import ChatOpenAI
 from langchain.schema import (
@@ -147,3 +148,19 @@ async def test_async_chat_openai_streaming() -> None:
             assert isinstance(generation, ChatGeneration)
             assert isinstance(generation.text, str)
             assert generation.text == generation.message.content
+
+
+def test_openai_chat_non_streaming_callback() -> None:
+    callback_handler = OpenAICallbackHandler()
+    callback_manager = CallbackManager([callback_handler])
+    chat = ChatOpenAI(
+        max_tokens=10,
+        temperature=0,
+        callback_manager=callback_manager,
+        verbose=True,
+    )
+    message = HumanMessage(content="Write me a poem with 20 lines.")
+    chat([message])
+    assert callback_handler.prompt_tokens > 0
+    assert callback_handler.completion_tokens == 10
+    assert callback_handler.total_tokens > 10
