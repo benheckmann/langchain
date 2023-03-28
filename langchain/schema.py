@@ -154,7 +154,8 @@ class ChatResult(BaseModel):
 class LLMResult(BaseModel):
     """Class that contains all relevant information for an LLM Result."""
 
-    generations: List[List[Generation]]
+    generations: Optional[List[List[Generation]]]
+    embeddings: Optional[List[List[float]]]
     """List of the things generated. This is List[List[]] because
     each input could have multiple generations."""
     llm_output: Optional[dict] = None

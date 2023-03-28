@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from langchain.embeddings.base import Embeddings
 
 
-class FakeEmbeddings(Embeddings, BaseModel):
+class FakeEmbeddings(Embeddings):
     size: int
 
     def _get_embedding(self) -> List[float]:

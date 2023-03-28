@@ -83,6 +83,12 @@ class OpenAICallbackHandler(BaseCallbackHandler):
             self.successful_requests += 1
             if "token_usage" in response.llm_output:
                 token_usage = response.llm_output["token_usage"]
+                if "total_tokens" in token_usage:
+                    self.total_tokens += token_usage["total_tokens"]
+                if "prompt_tokens" in token_usage:
+                    self.prompt_tokens += token_usage["prompt_tokens"]
+                if "completion_tokens" in token_usage:
+                    self.completion_tokens += token_usage["completion_tokens"]
                 if "model_name" in response.llm_output:
                     completion_cost = get_openai_model_cost_per_1k_tokens(
                         response.llm_output["model_name"], is_completion=True

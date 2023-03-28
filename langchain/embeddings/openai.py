@@ -15,7 +15,8 @@ from typing import (
 )
 
 import numpy as np
-from pydantic import BaseModel, Extra, root_validator
+from openai.openai_object import OpenAIObject
+from pydantic import Extra, root_validator
 from tenacity import (
     before_sleep_log,
     retry,
@@ -25,6 +26,7 @@ from tenacity import (
 )
 
 from langchain.embeddings.base import Embeddings
+from langchain.schema import LLMResult
 from langchain.utils import get_from_dict_or_env
 
 logger = logging.getLogger(__name__)
@@ -61,9 +63,20 @@ def embed_with_retry(embeddings: OpenAIEmbeddings, **kwargs: Any) -> Any:
         return embeddings.client.create(**kwargs)
 
     return _embed_with_retry(**kwargs)
+    embeddings.callback_manager.on_llm_start(
+        {"name": embeddings.__class__.__name__},
+        kwargs.get("input"),
+    )
+    try:
+        response = _completion_with_retry(**kwargs)
+    except (Exception, KeyboardInterrupt) as e:
+        embeddings.callback_manager.on_llm_error(e)
+        raise e
+    embeddings.callback_manager.on_llm_end(embeddings.create_llm_result(response))
+    return response
 
 
-class OpenAIEmbeddings(BaseModel, Embeddings):
+class OpenAIEmbeddings(Embeddings):
     """Wrapper around OpenAI embedding models.
 
     To use, you should have the ``openai`` python package installed, and the
@@ -191,6 +204,15 @@ class OpenAIEmbeddings(BaseModel, Embeddings):
                 "Please install it with `pip install openai`."
             )
         return values
+
+    def create_llm_result(self, response: OpenAIObject) -> LLMResult:
+        """Wraps the response from the API into a LLMResult object."""
+        embeddings = []
+        for d in response["data"]:
+            embeddings.append(d["embedding"])
+        llm_output = {"token_usage": dict(response["usage"]), "model_name": self.model}
+        result = LLMResult(embeddings=embeddings, llm_output=llm_output)
+        return result
 
     # please refer to
     # https://github.com/openai/openai-cookbook/blob/main/examples/Embedding_long_inputs.ipynb

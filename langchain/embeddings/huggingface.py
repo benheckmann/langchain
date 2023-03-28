@@ -13,7 +13,7 @@ DEFAULT_QUERY_INSTRUCTION = (
 )
 
 
-class HuggingFaceEmbeddings(BaseModel, Embeddings):
+class HuggingFaceEmbeddings(Embeddings):
     """Wrapper around sentence_transformers embedding models.
 
     To use, you should have the ``sentence_transformers`` python package installed.
@@ -80,7 +80,7 @@ class HuggingFaceEmbeddings(BaseModel, Embeddings):
         return embedding.tolist()
 
 
-class HuggingFaceInstructEmbeddings(BaseModel, Embeddings):
+class HuggingFaceInstructEmbeddings(Embeddings):
     """Wrapper around sentence_transformers embedding models.
 
     To use, you should have the ``sentence_transformers``
